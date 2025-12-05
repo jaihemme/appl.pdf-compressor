@@ -1,0 +1,24 @@
+export PATH=/Users/yogi/Docker/.docker/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+# definir le /Users/yogi/Docker/Dockerfile avec l'installation des tools, work et user
+# Construire l'image
+docker build -t pdf-processor .
+
+# Lancer un conteneur
+docker run --rm -t -v "${1%/*}":/data -e API_ILOVEPDF_TOKEN=$(cat api_ilovepdf_token.txt) jaihemme/pdf-compressor:latest <fichier pdf à compresser> 
+... avec nouvel entrypoint et user root
+docker run --rm -t -v ./test:/data -e API_ILOVEPDF_TOKEN=$(cat api_ilovepdf_token.txt) --entrypoint bash -u0 -i pdf-compressor:latest 
+
+# Ou lancer avec un shell interactif
+docker run -it debian-yogi bash
+
+# copier fichiers
+docker cp appl.pdf.tgz fc:/
+
+# lancer container existant
+docker ps -a
+
+# commit, tag and push
+docker commit .... #   si on a fait des changements, mais normalement tout est fait par les définitions dans le dockerfile
+docker login
+docker tag pdf-compressor:latest jaihemme/pdf-compressor:latest
