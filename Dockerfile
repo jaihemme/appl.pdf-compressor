@@ -11,6 +11,9 @@ COPY compress.sh create_jwt_token.sh .
 
 RUN chown -R tools:tools /appl/pdf-compressor
 
+# Set output directory to /data for Docker (mounted volume)
+ENV OUTPUT_DIR=/data
+
 # Exécuter en user non-root
 USER tools
 

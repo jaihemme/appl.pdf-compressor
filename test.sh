@@ -1,6 +1,8 @@
 date
-rm -vf test
+rm -vrf test
 mkdir test
-cp -v file1.pdf test/file-$(date +%Y%m%d-%H%M%S).pdf
-sleep 3
+FILE="file-$(date +%Y%m%d-%H%M%S).pdf"
+cp -v file1.pdf test/$FILE
+./compress.sh test/$FILE 2>&1 | tee -a compress.log
+touch compress.log
 exec less +F compress.log
