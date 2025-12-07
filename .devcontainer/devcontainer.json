@@ -1,0 +1,5 @@
+{
+  "name": "DevBox yogi",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {"ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {}}
+}
