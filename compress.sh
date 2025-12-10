@@ -9,7 +9,7 @@ set -Eeuo pipefail
 OUTPUT_DIR="${OUTPUT_DIR:-}"
 
 echo ""
-date
+date +"%A %d %B %YY %Z %z"
 echo "Run folder actions, $0, args: $*"
 
 [[ "$#" -ne 0 ]] && test "$1" = '-x' && { set -xv; shift; echo "=== trace ==="; }
@@ -20,18 +20,6 @@ test -f "$PdfFile" || { printf "Erreur: %s n'est pas un fichier. Exit 1\n." "$Pd
 [[ "${PdfFile##*/}" =~ .pdf$ ]] || { printf "Erreur: le nom du fichier %s n'a pas l'extension '.pdf'.Exit 1.\n" "$PdfFile"; exit 1; }
 [[ "${PdfFile##*/}" =~ .min.pdf$ ]] && { printf "L'extension '.min.pdf' est utilisée pour les fichiers compressés qui ne seront pas traités une deuxième fois. Exit 1.\n"; exit 1; }
 [[ $(file -b "$PdfFile") == PDF* ]] || { printf "Erreur: le fichier %s n'a pas le format PDF. Exit 1.\n" "$PdfFile"; exit 1; }
-
-# Compute output path early for the "already compressed" check
-_BaseFileName="${PdfFile##*/}"
-_OutputFileName="${_BaseFileName/.pdf/.min.pdf}"
-_DirName="${PdfFile%/*}"
-[[ "$_DirName" == "$PdfFile" ]] && _DirName="."
-if [[ -n "$OUTPUT_DIR" ]]; then
-    _CheckPath="${OUTPUT_DIR}/${_OutputFileName}"
-else
-    _CheckPath="${_DirName}/${_OutputFileName}"
-fi
-ls -l "$_CheckPath" 2>/dev/null && { printf "Ce fichier a déjà été compressé: %s. Exit 0.\n" "$_CheckPath"; exit 0; }
 
 CURL="curl"
 JQ="jq"

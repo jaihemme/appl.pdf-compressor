@@ -1,0 +1,6 @@
+.git*
+.env*
+*.md
+*.json
+*.log
+test/
