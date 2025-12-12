@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 cd /Users/yogi/Docker/appl.pdf-compressor
-MON_IMAGE="pdf-compressor"
+MON_IMAGE="jaihemme/appl.pdf-compressor"
 
 # Vérifier qu'on est sur un tag
 if ! git describe --tags --exact-match HEAD &>/dev/null; then
