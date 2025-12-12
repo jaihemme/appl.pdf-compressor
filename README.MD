@@ -6,10 +6,16 @@ Cette image comprime un fichier pdf sur la base de l'[api ilovepdf](https://www.
 
 La version gratuite de l'API permet 250 appels par mois.
 
+La timezone est implémentée de manière fixe (TZ=Europe/Zurich) en copiant la zoneinfo (lien symbolique) dans le système (/etc/localtime)
+La définition des locales en fr_CH ne fonctionne pas et les messages/dates restent en anglais. La date est formattée à l'européenne.
+
 ## Usage
 
 ```
 docker run --rm -t -v <dossier contenant le fichier à compresser>:/data -e API_ILOVEPDF_TOKEN=$(cat <chemin du token>) pdf-compressor <nom_de_fichier.pdf>
+
+# test
+docker run --rm -t -e API_ILOVEPDF_TOKEN=$(cat api_ilovepdf_token.txt) pdf-compressor -c test.sh
 ```
 
 
