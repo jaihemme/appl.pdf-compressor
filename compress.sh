@@ -3,23 +3,29 @@
 # https://developer.ilovepdf.com/docs/api-reference
 set -Eeuo pipefail
 
-# Output directory: use OUTPUT_DIR env var if set, otherwise use input file's directory
-# For Docker: set OUTPUT_DIR=/data (mounted volume)
-# For Replit: leave unset (uses same directory as input file)
-OUTPUT_DIR="${OUTPUT_DIR:-}"
-
 echo ""
-date +"%A %d %B %YY %Z %z"
-echo "Run folder actions, $0, args: $*"
+date +"%A %d %B %Y %Z %z"
+echo "Run folder actions, $0, args($#): $*"
+echo "env \$DATA: ${DATA}"
 
+# vérifie l'option -x pour le debug
 [[ "$#" -ne 0 ]] && test "$1" = '-x' && { set -xv; shift; echo "=== trace ==="; }
+# vérifie la présence d'un argument
 [[ "$#" -ne 1 ]] && { echo "Usage: $0 <nom_fichier.pdf>"; exit 1; }
-PdfFile="${1}"  # le nom du fichier
-test -r "$PdfFile" || { printf "Erreur: le fichier %s n'a pas été trouvé. Exit 1.\n" "$PdfFile"; exit 1; }
-test -f "$PdfFile" || { printf "Erreur: %s n'est pas un fichier. Exit 1\n." "$PdfFile"; exit 1; }
-[[ "${PdfFile##*/}" =~ .pdf$ ]] || { printf "Erreur: le nom du fichier %s n'a pas l'extension '.pdf'.Exit 1.\n" "$PdfFile"; exit 1; }
-[[ "${PdfFile##*/}" =~ .min.pdf$ ]] && { printf "L'extension '.min.pdf' est utilisée pour les fichiers compressés qui ne seront pas traités une deuxième fois. Exit 1.\n"; exit 1; }
-[[ $(file -b "$PdfFile") == PDF* ]] || { printf "Erreur: le fichier %s n'a pas le format PDF. Exit 1.\n" "$PdfFile"; exit 1; }
+# le chemin complet de fichier dans docker 
+PdfFile="${DATA}/${1}"
+FileName="${1}"
+DirName="${DATA}"
+# vérifie l'existence du fichier/dossier
+test -r "${PdfFile}" || { printf "Erreur: le fichier %s n'a pas été trouvé. Exit 1.\n" "${PdfFile}"; exit 1; }
+# vérifie l'existence du fichier
+test -f "${PdfFile}" || { printf "Erreur: %s n'est pas un fichier. Exit 1\n." "${PdfFile}"; exit 1; }
+# le nom du fichier doit se terminer par .pdf
+[[ "${FileName}" =~ .pdf$ ]] || { printf "Erreur: le nom du fichier %s n'a pas l'extension '.pdf'.Exit 1.\n" "${PdfFile}"; exit 1; }
+# le nom du fichier ne doit pas se terminer par .min.pdf qui est déjà compressé
+[[ "${FileName}" =~ .min.pdf$ ]] && { printf "L'extension '.min.pdf' est utilisée pour les fichiers compressés qui ne seront pas traités une deuxième fois. Exit 1.\n"; exit 1; }
+# vérifie le format pdf 
+[[ $(file -b "${PdfFile}") == PDF* ]] || { printf "Erreur: le fichier %s n'a pas le format PDF. Exit 1.\n" "${PdfFile}"; exit 1; }
 
 CURL="curl"
 JQ="jq"
@@ -49,17 +55,12 @@ echo "Server: $Server"
 Task="$($JQ -er '.task' $out1)" || { printf "Erreur: le champ 'task' n'a pas été trouvé. Exit 1.\n"; tail "$out1"; exit 1; }
 echo "Task: $Task"
 
-printf "Uploading file %s ... " "$PdfFile"
-$CURL -s -F "file=@\"$PdfFile\"" -F "task=$Task" -H "$Authorization" -H "$Accept" -o "$out2" "$msg" https://$Server/v1/upload 
+printf "Uploading file %s ... " "${PdfFile}"
+$CURL -s -F "file=@\"${PdfFile}\"" -F "task=$Task" -H "$Authorization" -H "$Accept" -o "$out2" "$msg" https://$Server/v1/upload 
 test -r "$out2" || { printf "Erreur: le fichier %s n'a pas été créé. Exit 1.\n" "$out2"; exit 1; }
 
 ServerFileName="$($JQ -er '.server_filename' $out2)" || { printf "Erreur: le champ 'server_filename' n'a pas été trouvé. Exit 1.\n"; tail "$out2"; exit 1; }
 echo "Server file name: $ServerFileName"
-
-FileName=${PdfFile##*/}
-DirName=${PdfFile%/*}
-# If DirName equals FileName, file is in current directory
-[[ "$DirName" == "$PdfFile" ]] && DirName="."
 
 printf "Compressing %s ...\n" "$FileName"
 # compression_level peut être modifié (extreme ou low)
@@ -70,23 +71,14 @@ Status="$($JQ -er '.status' $out3)" || { printf "Erreur: le champ 'status' n'a p
 echo "Status: $Status"
 test "$Status" = "TaskSuccess" || { printf "Erreur: status inattendu (≠'TaskSuccess'). Exit 1.\n"; tail "$out3"; exit 1; }
 
-# Determine output path: use OUTPUT_DIR if set, otherwise use input file's directory
-BaseFileName="${PdfFile##*/}"
-OutputFileName="${BaseFileName/.pdf/.min.pdf}"
-if [[ -n "$OUTPUT_DIR" ]]; then
-    OutputPath="${OUTPUT_DIR}/${OutputFileName}"
-else
-    OutputPath="${DirName}/${OutputFileName}"
-fi
-printf "Downloading %s ...\n" "$OutputPath"
-$CURL -s -H "$Authorization" -H "$Accept" -o "${OutputPath}" "$msg" https://$Server/v1/download/$Task -X GET
-test -r "$OutputPath" || { printf "Erreur: le fichier %s n'a pas été créé. Exit 1.\n" "$OutputPath"; exit 1; }
-ls -l "$PdfFile" "$OutputPath"
-taux="$(( $(stat -c%s "$OutputPath") * 100 / $(stat -c%s "$PdfFile"))) %"
+OutputFile="${PdfFile/.pdf/.min.pdf}"
+printf "Downloading %s ...\n" "${OutputFile}"
+$CURL -s -H "$Authorization" -H "$Accept" -o "${OutputFile}" "$msg" https://$Server/v1/download/$Task -X GET
+test -r "${OutputFile}" || { printf "Erreur: le fichier %s n'a pas été créé. Exit 1.\n" "${OutputFile}"; exit 1; }
+ls -l "${PdfFile}" "${OutputFile}"
+taux="$(( $(stat -c%s "${OutputFile}") * 100 / $(stat -c%s "${PdfFile}"))) %"
 
-MESSAGE="${OutputFileName} compressé avec un taux de $taux"
+MESSAGE="${OutputFile##*/} compressé avec un taux de $taux"
 printf '%s\n' "$MESSAGE"
-# -appIcon ne fonctionne pas, -sender incompatible avec -execute ou -open
-# $NOTIFY -message "${MESSAGE// / }" -title "RunFolderAction" -group "RunFolderAction" -subtitle "$(realpath $PWD/$0)" -execute "open -a Preview ${FileName// /\ }" && echo "Notify done" || printf "terminal-notifyer exit $?"
 
 ###

@@ -7,8 +7,8 @@ ARG GIT_VERSION=unknown
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
 
-# Set output directory to /data for Docker (mounted volume)
-ENV OUTPUT_DIR=/data
+# Configure le répertoire d'entréé et sortie dans Docker (mounted volume)
+ENV DATA=/data
 
 LABEL org.opencontainers.image.version="${GIT_VERSION}"
 LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
@@ -25,8 +25,8 @@ RUN apk add --no-cache \
 
 RUN addgroup -g 1001 tools && \
     adduser -D -G tools -u 1001 tools && \
-    mkdir -p /app $OUTPUT_DIR && \
-    chown -R tools:tools /app $OUTPUT_DIR
+    mkdir -p /app $DATA && \
+    chown -R tools:tools /app $DATA
 
 # localtime est une copie de /usr/share/zoneinfo/Europe/Zurich
 COPY localtime /etc/
