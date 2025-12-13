@@ -1,4 +1,4 @@
-FROM alpine:3.19
+FROM alpine:3.23
 
 LABEL org.opencontainers.image.title="PDF Compressor"
 LABEL org.opencontainers.image.source="https://github.com/jaihemme/appl.pdf-compressor"
